@@ -3,9 +3,7 @@
     [cli-matic.core :as cli]
     [clojure.string :refer [split-lines]]
     [clojure.walk :refer [postwalk]]
-    [io.jesi.backpack :as bp]
-    [io.jesi.backpack.macros :refer [shorthand]]
-    [taoensso.encore :refer [remove-keys assoc-some]]))
+    [taoensso.encore :refer [assoc-some]]))
 
 (defn- tag->type [tag]
   ;https://github.com/l3nz/cli-matic/blob/master/README.md#current-pre-sets
@@ -62,7 +60,7 @@
 
 (def ^:private ns-public-fns-xform
   (comp
-    (remove (comp (bp/partial-right starts-with? \-) str first))
+    (remove (comp #(starts-with? % \-) str first))
     (filter (comp fn? deref second))
     (map second)))
 

@@ -6,11 +6,7 @@
   :managed-dependencies [[org.clojure/clojure "1.10.1"]]
   :dependencies [[org.clojure/clojure]
                  [cli-matic "0.3.8"]
-                 [com.taoensso/encore "2.116.0"]
-                 [io.jesi/backpack "3.4.1"
-                  :exclusions [com.lucasbradstreet/cljs-uuid-utils
-                               org.clojars.mmb90/cljs-cache
-                               org.clojure/core.async]]]
+                 [com.taoensso/encore "2.116.0"]]
   :repl-options {:init-ns quarrel.core}
   :profiles {:dev {:plugins [[lein-auto "0.1.3"]
                              [lein-shell "0.5.0"]
