@@ -64,12 +64,6 @@
     (filter (comp fn? deref second))
     (map second)))
 
-(defn- ns-public-fns [ns]
-  ;TODO use transducer
-  (->> ns
-       ns-publics
-       (eduction ns-public-fns-xform)))
-
 (defn- fnvar->subcommands [v]
   (let [{:keys [name arglists doc]} (meta v)]
     ;TODO cli-matic should not invoke with {:_arguments []} when no arguments
@@ -83,7 +77,8 @@
     {:app      (assoc-some {:command cmd-name}
                  :description (some-> ns-doc split-lines))
      :commands (->> ns
-                    ns-public-fns
+                    ns-publics
+                    (eduction ns-public-fns-xform)
                     (map fnvar->subcommands))}))
 
 (defn run [app-name]
