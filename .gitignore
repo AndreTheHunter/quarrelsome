@@ -1,0 +1,5 @@
+/*.iml
+/.idea
+/pom.xml
+/target
+.lein-failures
