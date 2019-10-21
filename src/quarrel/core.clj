@@ -3,14 +3,18 @@
     [cli-matic.core :as cli]
     [clojure.string :refer [split-lines]]
     [clojure.walk :refer [postwalk]]
-    [taoensso.encore :refer [assoc-some]]))
+    [taoensso.encore :refer [assoc-some]])
+  (:import
+    (clojure.lang Keyword)))
 
 (defn- tag->type [tag]
   ;https://github.com/l3nz/cli-matic/blob/master/README.md#current-pre-sets
   (case tag
-    ;TODO cli-matic does not support boolean types
-    ;Boolean :bool
+    ;TODO cli-matic does not support boolean types yet https://github.com/l3nz/cli-matic/issues/13
+    Boolean :bool
     Integer :int
+    Keyword :keyword
+    Float :float
     :string))
 
 (defn- char-at= [^CharSequence s fn-i char]
@@ -74,6 +78,7 @@
 
 (defn ns->setup [cmd-name ns]
   (let [{ns-doc :doc} (meta ns)]
+    ;TODO if `-main` use that as only command
     {:app      (assoc-some {:command cmd-name}
                  :description (some-> ns-doc split-lines))
      :commands (->> ns
@@ -81,5 +86,8 @@
                     (eduction ns-public-fns-xform)
                     (map fnvar->subcommands))}))
 
+(defn main [app-name args]
+  (cli/run-cmd args (ns->setup app-name *ns*)))
+
 (defn run [app-name]
-  (cli/run-cmd *command-line-args* (ns->setup app-name *ns*)))
+  (main app-name *command-line-args*))
