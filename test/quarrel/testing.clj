@@ -1,6 +1,6 @@
-;FIXME don't run ns as part of tests
 (ns quarrel.testing
-  "I'm here for an argument")
+  "I'm here for an argument"
+  (:refer-clojure :exclude [pr]))
 
 (def v nil)
 
@@ -14,5 +14,6 @@
 (defn pr
   "Create or open an existing PR"
   [{^{:short \o
-      :doc   "Open the PR URL"} open? :open
-    :or                               {open? false}}])
+      :doc   "Open the PR URL"
+      :tag   Boolean} open? :open
+    :or                  {open? false}}])

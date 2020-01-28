@@ -1,0 +1,9 @@
+#kaocha/v1 {:tests                    [{:id                      :clj
+                                        :type                    :kaocha.type/clojure.test
+                                        :kaocha.filter/skip-meta [:performance]}
+                                       {:id                  :clj-integration
+                                        :type                :kaocha.type/clojure.test
+                                        :kaocha.filter/focus [:performance]}]
+            :capture-output?          true
+            :kaocha.filter/focus-meta [:focus]
+            :plugins                  [:io.jesi.customs.strict.kaocha/plugin]}

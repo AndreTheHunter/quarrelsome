@@ -1,23 +1,21 @@
 (ns quarrel.core
   (:require
     [cli-matic.core :as cli]
-    [clojure.string :refer [split-lines]]
-    [clojure.walk :refer [postwalk]]
+    [clojure.string :as str]
     [taoensso.encore :refer [assoc-some]])
   (:import
     (clojure.lang Keyword)))
 
 (defn- tag->type [tag]
   ;https://github.com/l3nz/cli-matic/blob/master/README.md#current-pre-sets
-  (case tag
-    ;TODO cli-matic does not support boolean types yet https://github.com/l3nz/cli-matic/issues/13
-    Boolean :bool
+  (condp #(= %1 %2) tag
+    Boolean :with-flag
     Integer :int
-    Keyword :keyword
     Float :float
+    Keyword :keyword
     :string))
 
-(defn- char-at= [^CharSequence s fn-i char]
+(defn- char-at= [^CharSequence s fn-i ^Character char]
   (and s
        (< 0 (.length s))
        (-> s
@@ -69,18 +67,19 @@
     (map second)))
 
 (defn- fnvar->subcommands [v]
-  (let [{:keys [name arglists doc]} (meta v)]
+  (let [{:keys [name arglists doc]} (meta v)
+        name (str name)]
     ;TODO cli-matic should not invoke with {:_arguments []} when no arguments
     (assoc-some {:runs    v
-                 :command (str name)}
+                 :command name}
       :opts (arglist->options (first arglists))
-      :description (some-> doc split-lines))))
+      :description (or (some-> doc str/split-lines) name))))
 
 (defn ns->setup [cmd-name ns]
   (let [{ns-doc :doc} (meta ns)]
     ;TODO if `-main` use that as only command
     {:app      (assoc-some {:command cmd-name}
-                 :description (some-> ns-doc split-lines))
+                 :description (some-> ns-doc str/split-lines))
      :commands (->> ns
                     ns-publics
                     (eduction ns-public-fns-xform)
