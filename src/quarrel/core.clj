@@ -29,16 +29,13 @@
   (char-at= s #(dec (.length s)) char))
 
 (defn- option [k sym]
-  (let [{short-opt :short
-         desc      :doc
-         tag       :tag
-         :keys     [type]} (meta sym)
+  (let [{:keys [tag doc short type]} (meta sym)
         k (name k)
         tag (if (ends-with? (str sym) \?) Boolean tag)]
     (assoc-some {:option k}
-      :short (when short-opt (str short-opt))
-      :type (or type (tag->type tag))
-      :as desc)))
+      :as doc
+      :short (when short (str short))
+      :type (or type (tag->type tag)))))
 
 (defn- arglist->options [[opts]]
   ;TODO support var-args

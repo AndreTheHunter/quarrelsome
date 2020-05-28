@@ -1,6 +1,8 @@
 #!/usr/bin/env cljog
+;TODO and slf4j-nop to cljog
 (deps '[[com.clojure-goes-fast/lazy-require "0.1.1"]
-        [quarrelsome "0.1.0-SNAPSHOT"]])
+        [com.github.andrethehunter/quarrelsome "0.1.0-SNAPSHOT"]])
+
 (ns quarrelsome
   "Quarrelsome build tool"
   (:refer-clojure :exclude [test])
@@ -35,8 +37,13 @@
 (defn- lein-dev [& args]
   (-lein [:dev] args))
 
-(defn deps [_]
-  (lein "-U" "deps"))
+(defn deps [{^{:short \t
+               :tag   Boolean} tree? :tree}]
+  ;TODO support passing in profile arg e.g. p deps -t test
+  (let [args ["deps"]]
+    (apply lein "-U" (if tree?
+                       (concat ["with-profile" "-dev"] args [":tree"])
+                       args))))
 
 (defn lint [_]
   (lein-dev "docs"))
@@ -44,12 +51,20 @@
 (defn lint [_]
   (lein-dev "lint"))
 
+(defn outdated [_]
+  (lein-dev "ancient"))
+
+(def old outdated)
+
 (defn test "run unit tests"
   [{^{:short \r
       :tag   Boolean} refresh? :refresh}]
   (lein-dev (if refresh?
               "test-refresh"
-              "test")))
+              "test") "unit"))
+
+(defn perf "run performance tests" [_]
+  (lein-dev "test" "perf"))
 
 (defn- require-committed [& paths]
   (user/deps '[[clj-jgit "1.0.0-beta3"]])
