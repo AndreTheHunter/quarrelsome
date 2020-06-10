@@ -8,7 +8,7 @@
 
 (defn- tag->type [tag]
   ;https://github.com/l3nz/cli-matic/blob/master/README.md#current-pre-sets
-  (condp #(= %1 %2) tag
+  (condp = tag
     Boolean :with-flag
     Integer :int
     Float :float
@@ -17,7 +17,7 @@
 
 (defn- char-at= [^CharSequence s fn-i ^Character char]
   (and s
-       (< 0 (.length s))
+       (pos? (.length s))
        (-> s
            (.charAt (fn-i))
            (= char))))
