@@ -1,10 +1,20 @@
 (ns quarrel.core
   (:require
     [cli-matic.core :as cli]
-    [clojure.string :as str]
-    [taoensso.encore :refer [assoc-some]])
+    [clojure.string :as str])
   (:import
     (clojure.lang Keyword)))
+
+(defn- assoc-some
+  ([m k v]
+   (if (some? v)
+     (assoc m k v)
+     m))
+  ([m k v & kvs]
+   (let [ret (assoc-some m k v)]
+     (if (and kvs (next kvs))
+       (recur ret (first kvs) (second kvs) (nnext kvs))
+       ret))))
 
 (defn- tag->type [tag]
   ;https://github.com/l3nz/cli-matic/blob/master/README.md#current-pre-sets
