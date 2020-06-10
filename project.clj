@@ -14,8 +14,7 @@
                          [org.clojure/tools.cli "1.0.194"]
                          [org.clojure/tools.namespace "1.0.0"]]
   :dependencies [[org.clojure/clojure "1.10.1" :scope "provided"]
-                 [cli-matic "0.3.11"]
-                 [com.taoensso/encore "2.120.0"]]
+                 [cli-matic "0.4.2"]]
   :repl-options {:init-ns quarrel.core}
   :profiles {:dev {:plugins      [[lein-ancient "0.6.15"]
                                   [lein-codox "0.10.7"]
