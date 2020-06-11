@@ -1,11 +1,12 @@
 (ns quarrel.core
   (:require
-    [cli-matic.core :as cli]
-    [clojure.string :as str])
+    [clojure.string :as str]
+    [clojure.pprint :refer [pprint]]
+    [clojure.tools.cli :refer [parse-opts]])
   (:import
     (clojure.lang Keyword)))
 
-(defn- assoc-some
+(defn assoc-some
   ([m k v]
    (if (some? v)
      (assoc m k v)
@@ -25,17 +26,17 @@
     Keyword :keyword
     :string))
 
-(defn- char-at= [^CharSequence s fn-i ^Character char]
+(defn- char-at= [^String s fn-i ^Character char]
   (and s
        (pos? (.length s))
        (-> s
            (.charAt (fn-i))
            (= char))))
 
-(defn- starts-with? [^CharSequence s char]
+(defn- starts-with? [^String s char]
   (char-at= s (constantly 0) char))
 
-(defn- ends-with? [^CharSequence s char]
+(defn- ends-with? [^String s char]
   (char-at= s #(dec (.length s)) char))
 
 (defn- option [k sym]
@@ -69,6 +70,7 @@
 
 (def ^:private ns-public-fns-xform
   (comp
+    (filter (comp symbol? first))
     (remove (comp #(starts-with? % \-) str first))
     (filter (comp fn? deref second))
     (map second)))
@@ -82,18 +84,19 @@
       :opts (arglist->options (first arglists))
       :description (or (some-> doc str/split-lines) name))))
 
-(defn ns->setup [cmd-name ns]
+(defn option-specs [app-name ns]
   (let [{ns-doc :doc} (meta ns)]
     ;TODO if `-main` use that as only command
-    {:app      (assoc-some {:command cmd-name}
+    ;FIXME return tools.cli compatible map
+    {:app      (assoc-some {:command app-name}
                  :description (some-> ns-doc str/split-lines))
      :commands (->> ns
                     ns-publics
                     (eduction ns-public-fns-xform)
-                    (map fnvar->subcommands))}))
+                    (mapv fnvar->subcommands))}))
 
 (defn main [app-name args]
-  (cli/run-cmd args (ns->setup app-name *ns*)))
+  (parse-opts args (option-specs app-name *ns*)))
 
 (defn run [app-name]
   (main app-name *command-line-args*))

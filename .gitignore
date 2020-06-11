@@ -1,4 +1,5 @@
 .clj-kondo/.cache/
+.cpcache/
 .lein-failures
 /*.iml
 /.idea

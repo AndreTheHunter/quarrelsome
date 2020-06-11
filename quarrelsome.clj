@@ -1,41 +1,67 @@
-#!/usr/bin/env cljog
-;TODO and slf4j-nop to cljog
-(deps '[[com.clojure-goes-fast/lazy-require "0.1.1"]
-        [com.github.andrethehunter/quarrelsome "0.1.0-SNAPSHOT"]])
+#!/usr/bin/env bb-cljog
+#!/usr/bin/env cljog --bb
+
+;
+;(def echo println)
+;
+;(defn err [& more]
+;  (binding [*out* *err*]
+;    (apply println more)))
+;
+;(require
+;  '[clojure.java.shell :refer [sh]]
+;  '[babashka.classpath :refer [add-classpath]])
+;
+;(defn add-deps [deps]
+;  (let [edn (prn-str {:deps deps})
+;        {:keys [exit out err]} (sh "clojure" "-Spath" "-Sdeps" edn)]
+;    (when-not (zero? exit)
+;      (err "error adding deps")
+;      (echo out)
+;      (user/err err))
+;    (echo "Updating classpath:" out)
+;    (add-classpath out)))
+;
+
+;(add-deps '{com.github.andrethehunter/quarrelsome {:mvn/version "0.1.0-SNAPSHOT"}
+
+;(add-deps '{cli-matic {:mvn/version "0.4.2"}})
 
 (ns quarrelsome
   "Quarrelsome build tool"
   (:refer-clojure :exclude [test])
   (:require
-    [quarrel.core :refer [run]]
-    [lazy-require.core :refer [with-lazy-require]]))
+    [babashka.classpath :refer [add-classpath]]
+    [cljog :refer [echo err deps script] :rename {deps add-deps}]
+    [clojure.string :as str]
+    [clojure.test :as t]))
 
-(def ^:private echo println)
+(defn sh [& cmd]
+  (let [cmd-str (str/join \space cmd)]
+    (echo "Running:" cmd-str)
+    (let [p (-> (ProcessBuilder. cmd)
+                (.redirectOutput java.lang.ProcessBuilder$Redirect/INHERIT)
+                (.redirectError java.lang.ProcessBuilder$Redirect/INHERIT)
+                (.start))
+          exit (-> p (.waitFor))]
+      (when-not (zero? exit)
+        (throw (ex-info (str "Error running: " cmd-str) {:exit exit})))
+      (-> p .destroy))))
 
-(defn- err [& more]
-  (binding [*out* *err*]
-    (apply println more)))
+(defn- ->str [coll]
+  (map str coll))
 
-(defn- -lein
-  ([args] (-lein [:default] args))
-  ([profiles args]
-   (user/deps '[[leiningen "2.9.1"]])
-   (with-lazy-require [[clojure.stacktrace :as stacktrace]
-                       [clojure.string :as str]
-                       [leiningen.core.main :as lein]
-                       [leiningen.core.project :as project]]
-     (echo "Running:" "lein" (str/join \space args))
-     (try
-       (project/ensure-dynamic-classloader)
-       (lein/resolve-and-apply (project/read "project.clj" profiles) args)
-       (catch Exception e
-         (stacktrace/print-cause-trace e))))))
+(defn- -lein [args]
+  (apply sh "lein" args))
 
-(defn- lein [& args]
-  (-lein args))
+(defmacro lein [& args]
+  `(-lein '~(->str args)))
 
-(defn- lein-dev [& args]
-  (-lein [:dev] args))
+(defmacro lein-dev [& args]
+  `(-lein '~(->str (list* 'with-profile '+dev args))))
+
+(defn- circleci [& args]
+  (apply sh "circleci" args))
 
 (defn deps [{^{:short \t
                :tag   Boolean} tree? :tree}]
@@ -46,9 +72,7 @@
                        args))))
 
 (defn lint [_]
-  (lein-dev "docs"))
-
-(defn lint [_]
+  (circleci "config" "validate")
   (lein-dev "lint"))
 
 (defn outdated [_]
@@ -66,32 +90,40 @@
 (defn perf "run performance tests" [_]
   (lein-dev "test" "perf"))
 
-(defn- require-committed [& paths]
-  (user/deps '[[clj-jgit "1.0.0-beta3"]])
-  (with-lazy-require [[clj-jgit.porcelain :as git]]
-    (when (->> (git/git-status (git/load-repo ".") :paths paths)
-            vals
-            (some seq))
-      (err "Uncommitted files in" paths)
-      (System/exit 1))))
+(defmacro git [& args]
+  `(apply sh "git" '~(->str args)))
+
+(defn- check-committed [& paths]
+  (git diff --quiet --exit-code "."))
 
 (defn docs "generate API docs" [_]
+  (macroexpand-1 `(lein-dev docs))
   (lein-dev "docs"))
 
 (defn test-docs [_]
   (docs nil)
-  (require-committed "docs"))
+  (check-committed "docs"))
 
 (defn install "local install" [_]
   (echo "Installing")
   (lein "install"))
 
 (defn snapshot [_]
-  (with-lazy-require [[leiningen.core.main :as lein]]
-    (lein/exit 1)))
+  (System/exit 1))
 
 (defn release [_]
-  (with-lazy-require [[leiningen.core.main :as lein]]
-    (lein/exit 1)))
+  (System/exit 1))
 
-(run @#'user/*script*)
+;(require '[quarrel.core :refer [run]])
+;(run file-name)
+;(lint nil)
+
+(defn bb-test []
+  (add-classpath "src:test:resources")
+  (require '[quarrel.core-test])
+  (let [{:keys [fail error] :as result} (t/run-tests 'quarrel.core-test)]
+    (when-not (zero? (+ fail error))
+      (throw (ex-info "Tests failed" result)))))
+
+(bb-test)
+(System/exit 0)

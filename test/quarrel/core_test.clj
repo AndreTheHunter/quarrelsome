@@ -1,39 +1,42 @@
 (ns quarrel.core-test
-  (:refer-clojure :exclude [=])
   (:require
-    [io.jesi.customs.strict :refer :all]
+    [clojure.test :refer :all]
     [quarrel.core :refer :all]
+    [clojure.tools.cli :refer [parse-opts]]
     [quarrel.testing]))
 
-(deftest ns->setup-test
+(def testing-ns (find-ns 'quarrel.testing))
 
-  (testing "ns->setup"
+(deftest cli-options-test
+
+  (testing "option-specs"
 
     (testing "is a function"
-      (is (fn? ns->setup)))
+      (is (fn? option-specs)))
 
-    (testing "returns CLI-matic setup"
+    (testing "returns tools.cli options map for all public functions in the specified ns"
+      (is (some? testing-ns))
+      ;TODO use order agnostic equals
+      (let [option-specs (option-specs "testing" testing-ns)]
+        ;FIXME make tools.cli compatible map
+        (is (= {:commands [{:command     "pr"
+                            :runs        #'quarrel.testing/pr
+                            :opts        [{:id        "open"
+                                           :as        "Open the PR URL"
+                                           :short-opt "o"
+                                           :type      :with-flag}]
+                            :description ["Create or open an existing PR"]}]
+                :app      {:command     "testing"
+                           :description ["I'm here for an argument"]}}
+               option-specs))
+        (is (nil? (:errors (parse-opts ["-h"] option-specs))))))))
 
-      (testing "for all public functions in the specified ns"
-        (is= {:app      {:command     "testing"
-                         :description ["I'm here for an argument"]}
-              :commands [{:command     "pr"
-                          :description ["Create or open an existing PR"]
-                          :opts        [{:option  "open"
-                                         :short   "o"
-                                         :as      "Open the PR URL"
-                                         :type    :with-flag
-                                         :default false}]
-                          :runs        (var quarrel.testing/pr)}]}
-             (ns->setup "testing" (find-ns `quarrel.testing)))))))
+(comment (deftest ^:performance cli-options-performance-test
 
-(deftest ^:performance ns->setup-performance-test
-
-  (testing "ns->setup performance"
-    (dotimes [_ 10]
-      (time (ns->setup "perf" 'quarrel.testing)))))
-
-(def ^:private assoc-some #'quarrel.core/assoc-some)
+           (testing "cli-options performance"
+             (is (some? testing-ns))
+             (dotimes [_ 10]
+               (time (option-specs "perf" testing-ns))))))
 
 (deftest assoc-some-test
 
@@ -42,20 +45,20 @@
 
       (testing "assocs when value is some"
         (is (identical? m (assoc-some m :b nil)))
-        (is= {:a 1 :b 2}
-             (assoc-some m :b 2)))
+        (is (= {:a 1 :b 2}
+               (assoc-some m :b 2))))
 
       (testing "supports multiple keys"
-        (is= {:a 1
-              :b "b"
-              :c 3
-              :e true
-              :f false
-              :g {}}
-             (assoc-some m
-               :b "b"
-               :c 3
-               :d nil
-               :e true
-               :f false
-               :g {}))))))
+        (is (= {:a 1
+                :b "b"
+                :c 3
+                :e true
+                :f false
+                :g {}}
+               (assoc-some m
+                 :b "b"
+                 :c 3
+                 :d nil
+                 :e true
+                 :f false
+                 :g {})))))))

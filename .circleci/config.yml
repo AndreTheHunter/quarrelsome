@@ -1,4 +1,4 @@
-version: 21
+version: 2.1
 aliases:
   cache:
     lein_cache: &LEIN_CACHE
@@ -8,31 +8,24 @@ aliases:
         - /home/node/.m2
   containers:
     docker: &DEFAULT
-      - image: jesiio/build-bus:latest
-        user: node
+      - image: circleci/clojure:lein-2.9.3
         environment:
+          LEIN_ROOT: "true"
           JVM_OPTS: -Xmx3200m
           DEBUG: 1
-  commands:
-    cancel_redundant: &CANCEL_REDUNDANT
-      run:
-        name: Check & Cancel Redundant Build
-        command: 'cancel-redundant-builds.sh'
 jobs:
   deps:
     docker: *DEFAULT
     steps:
-      - *CANCEL_REDUNDANT
       - checkout
       - restore_cache:
           <<: *LEIN_CACHE
-      - run: './quarrelsome.clj deps'
+      - run: 'lein deps'
       - save_cache:
           <<: *LEIN_CACHE
   lint:
     docker: *DEFAULT
     steps:
-      - *CANCEL_REDUNDANT
       - checkout
       - restore_cache:
           <<: *LEIN_CACHE
@@ -40,7 +33,6 @@ jobs:
   test:
     docker: *DEFAULT
     steps:
-      - *CANCEL_REDUNDANT
       - checkout
       - restore_cache:
           <<: *LEIN_CACHE
@@ -48,7 +40,7 @@ jobs:
   docs:
     docker: *DEFAULT
     steps:
-      - *CANCEL_REDUNDANT
+
       - checkout
       - restore_cache:
           <<: *LEIN_CACHE
@@ -56,7 +48,7 @@ jobs:
   snapshot:
     docker: *DEFAULT
     steps:
-      - *CANCEL_REDUNDANT
+
       - checkout
       - restore_cache:
           <<: *LEIN_CACHE
@@ -64,7 +56,7 @@ jobs:
   release:
     docker: *DEFAULT
     steps:
-      - *CANCEL_REDUNDANT
+
       - checkout
       - restore_cache:
           <<: *LEIN_CACHE
@@ -77,10 +69,10 @@ workflows:
       - lint:
           requires:
             - deps
-      - test:
+      - docs:
           requires:
             - deps
-      - docs:
+      - test:
           requires:
             - lint
       - snapshot:
@@ -90,10 +82,12 @@ workflows:
             - docs
           filters:
             branches:
-              ignore: /^(master|develop)$/
+              ignore: master
       - release:
           requires:
-            - test_clj
+            - lint
+            - test
+            - docs
           filters:
             branches:
               only: master
