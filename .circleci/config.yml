@@ -1,0 +1,93 @@
+version: 2.1
+aliases:
+  cache:
+    lein_cache: &LEIN_CACHE
+      key: lein-{{ .Environment.CACHE_VERSION }}-{{ checksum "project.clj" }}
+      paths:
+        - /home/node/.lein
+        - /home/node/.m2
+  containers:
+    docker: &DEFAULT
+      - image: circleci/clojure:lein-2.9.3
+        environment:
+          LEIN_ROOT: "true"
+          JVM_OPTS: -Xmx3200m
+          DEBUG: 1
+jobs:
+  deps:
+    docker: *DEFAULT
+    steps:
+      - checkout
+      - restore_cache:
+          <<: *LEIN_CACHE
+      - run: 'lein deps'
+      - save_cache:
+          <<: *LEIN_CACHE
+  lint:
+    docker: *DEFAULT
+    steps:
+      - checkout
+      - restore_cache:
+          <<: *LEIN_CACHE
+      - run: './quarrelsome.clj lint'
+  test:
+    docker: *DEFAULT
+    steps:
+      - checkout
+      - restore_cache:
+          <<: *LEIN_CACHE
+      - run: './quarrelsome.clj test'
+  docs:
+    docker: *DEFAULT
+    steps:
+
+      - checkout
+      - restore_cache:
+          <<: *LEIN_CACHE
+      - run: './quarrelsome.clj test-docs'
+  snapshot:
+    docker: *DEFAULT
+    steps:
+
+      - checkout
+      - restore_cache:
+          <<: *LEIN_CACHE
+      - run: './quarrelsome.clj snapshot'
+  release:
+    docker: *DEFAULT
+    steps:
+
+      - checkout
+      - restore_cache:
+          <<: *LEIN_CACHE
+      - run: './quarrelsome.clj release'
+workflows:
+  version: 2
+  build:
+    jobs:
+      - deps
+      - lint:
+          requires:
+            - deps
+      - docs:
+          requires:
+            - deps
+      - test:
+          requires:
+            - lint
+      - snapshot:
+          requires:
+            - lint
+            - test
+            - docs
+          filters:
+            branches:
+              ignore: master
+      - release:
+          requires:
+            - lint
+            - test
+            - docs
+          filters:
+            branches:
+              only: master

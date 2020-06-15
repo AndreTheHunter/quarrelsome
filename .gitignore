@@ -1,0 +1,8 @@
+.clj-kondo/.cache/
+.cpcache/
+.lein-failures
+/*.iml
+/.idea
+/pom.xml
+/target
+project.edn
